@@ -199,6 +199,27 @@ already references these relative paths.
 
 ---
 
+## Troubleshooting: "I pushed a fix but the live site looks unchanged"
+
+This is almost always a browser cache issue, not a deployment issue —
+especially on mobile Safari, which aggressively caches `styles.css` and
+`script.js` by their plain filename even after GitHub Pages has served
+the updated version.
+
+- **Fastest check:** open the site in a Private/Incognito tab. If it
+  looks correct there, it's confirmed to be a cache issue on your
+  regular tab/browser, not a real bug.
+- **Fix for that device:** on iOS, go to Settings → Safari → Advanced →
+  Website Data, find the site, and delete just that entry (or clear all
+  history/website data as a heavier-handed option).
+- **Permanent fix (already in place):** `index.html` and `404.html`
+  load `styles.css` and `script.js` with a version query string
+  (`styles.css?v=2`). Bump that number (`?v=3`, `?v=4`, ...) any time
+  you edit either file and push — a changed URL forces every browser to
+  fetch the new version instead of reusing a cached one.
+
+---
+
 ## Notes
 
 - All asset references use **relative paths** (`assets/...`, not
