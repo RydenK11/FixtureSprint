@@ -1,0 +1,14 @@
+# This is an EXAMPLE file, not an active configuration.
+#
+# GitHub Pages uses a file literally named "CNAME" (no extension) in the
+# repository root to connect a custom domain to your Pages site.
+#
+# To use a custom domain:
+#   1. Copy this file's content into a new file named exactly "CNAME"
+#      (case-sensitive, no file extension) in the repository root.
+#   2. Replace the placeholder below with your real domain.
+#   3. Commit and push the "CNAME" file.
+#   4. Configure DNS as described in README.md.
+#
+# PLACEHOLDER — replace with your real domain, then rename this file to CNAME:
+www.example.com
