@@ -32,26 +32,35 @@
 /* --------------------------------------------------------------------
    Reset & base
    -------------------------------------------------------------------- */
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
 html {
   scroll-behavior: smooth;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 body {
   margin: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
   font-family: var(--font-base);
   background-color: var(--color-bg);
   color: var(--color-text);
   line-height: 1.6;
+  overflow-wrap: anywhere;
   -webkit-font-smoothing: antialiased;
 }
 
 img,
 video {
   max-width: 100%;
+  min-width: 0;
   height: auto;
   display: block;
 }
@@ -112,12 +121,14 @@ summary:focus-visible {
 }
 
 .container {
+  width: 100%;
   max-width: var(--max-width);
   margin: 0 auto;
-  padding: 0 1.25rem;
+  padding: 0 clamp(1rem, 4vw, 1.25rem);
 }
 
 .section {
+  width: 100%;
   padding: 4rem 0;
 }
 
@@ -155,7 +166,14 @@ summary:focus-visible {
   cursor: pointer;
   transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
   text-decoration: none;
-  white-space: nowrap;
+  /* Long CTA copy ("Send Us Your Production Problem") must be able to
+     wrap onto a second line on narrow screens instead of forcing an
+     unbreakable width wider than the viewport. */
+  white-space: normal;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+  min-width: 0;
+  text-align: center;
 }
 
 .btn:hover {
@@ -203,19 +221,24 @@ summary:focus-visible {
 }
 
 .nav {
+  width: 100%;
   max-width: var(--max-width);
   margin: 0 auto;
-  padding: 0.9rem 1.25rem;
+  padding: 0.9rem clamp(1rem, 4vw, 1.25rem);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.75rem;
 }
 
 .nav__logo {
+  min-width: 0;
+  flex-shrink: 0;
   font-weight: 800;
-  font-size: 1.15rem;
+  font-size: clamp(1rem, 4.5vw, 1.15rem);
   color: var(--color-text);
   letter-spacing: -0.01em;
+  white-space: nowrap;
 }
 
 .nav__logo:hover {
@@ -286,6 +309,7 @@ summary:focus-visible {
    Hero
    -------------------------------------------------------------------- */
 .hero {
+  width: 100%;
   padding: 3rem 0 3.5rem;
 }
 
@@ -293,6 +317,11 @@ summary:focus-visible {
   display: grid;
   gap: 2.5rem;
   align-items: center;
+  min-width: 0;
+}
+
+.hero__grid > * {
+  min-width: 0;
 }
 
 .hero__subhead {
@@ -305,6 +334,12 @@ summary:focus-visible {
   flex-wrap: wrap;
   gap: 1rem;
   margin: 1.75rem 0;
+  min-width: 0;
+}
+
+.hero__ctas > * {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .credibility-list {
@@ -319,6 +354,7 @@ summary:focus-visible {
   display: flex;
   align-items: center;
   gap: 0.6rem;
+  min-width: 0;
   font-weight: 600;
   font-size: 0.95rem;
   color: var(--color-text);
@@ -330,6 +366,7 @@ summary:focus-visible {
 }
 
 .hero__media {
+  min-width: 0;
   border-radius: var(--radius);
   overflow: hidden;
   background-color: var(--color-surface-muted);
@@ -339,9 +376,79 @@ summary:focus-visible {
 
 .hero__image {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   aspect-ratio: 9 / 7;
   object-fit: cover;
   background-color: var(--color-surface-muted);
+}
+
+/* --------------------------------------------------------------------
+   Applications ticker
+   A continuously scrolling strip of the tooling categories from the
+   "Appropriate Applications" section, placed directly below the hero.
+   Pure CSS: the item list is duplicated once in the markup and the
+   track is translated by exactly -50% so the loop is seamless. The
+   outer .ticker clips the (intentionally overflowing) track so it
+   never affects the document's scrollable width.
+   -------------------------------------------------------------------- */
+.ticker {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  background-color: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  padding: 0.85rem 0;
+}
+
+.ticker__track {
+  display: flex;
+  width: max-content;
+  will-change: transform;
+  animation: ticker-scroll 42s linear infinite;
+}
+
+.ticker:hover .ticker__track,
+.ticker:focus-within .ticker__track {
+  animation-play-state: paused;
+}
+
+.ticker__group {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.ticker__item {
+  display: inline-block;
+  padding: 0 1.1rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.ticker__divider {
+  color: var(--color-accent);
+  font-size: 0.6rem;
+}
+
+@keyframes ticker-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker__track {
+    animation: none;
+  }
 }
 
 /* --------------------------------------------------------------------
@@ -351,16 +458,24 @@ summary:focus-visible {
   display: grid;
   gap: 2rem;
   margin: 2rem 0;
+  min-width: 0;
+}
+
+.case-study__body > * {
+  min-width: 0;
 }
 
 .case-study__images {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 0.75rem;
+  min-width: 0;
 }
 
 .case-study__images img {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   aspect-ratio: 4 / 3;
   object-fit: cover;
   border-radius: var(--radius);
@@ -390,17 +505,24 @@ summary:focus-visible {
 
 .metrics {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  /* Mobile-first: one column by default so long placeholder values
+     (e.g. "[TIME_REDUCTION]") always have room to wrap instead of
+     forcing the grid track — and the page — wider than the viewport. */
+  grid-template-columns: 1fr;
   gap: 1rem;
   margin: 2.5rem 0;
+  min-width: 0;
 }
 
 .metric-card {
+  min-width: 0;
+  max-width: 100%;
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   padding: 1.4rem 1.2rem;
   text-align: center;
+  overflow-wrap: anywhere;
 }
 
 .metric-card__label {
@@ -412,12 +534,17 @@ summary:focus-visible {
 
 .metric-card__value {
   display: block;
-  font-size: 1.5rem;
+  font-size: clamp(1.15rem, 5vw, 1.5rem);
   font-weight: 800;
   color: var(--color-accent);
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .video-wrapper {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   margin-top: 2.5rem;
   border-radius: var(--radius);
   overflow: hidden;
@@ -427,6 +554,8 @@ summary:focus-visible {
 
 .video-wrapper__video {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   aspect-ratio: 16 / 9;
   background-color: #000;
 }
@@ -438,6 +567,11 @@ summary:focus-visible {
   display: grid;
   gap: 1.25rem;
   margin-top: 2rem;
+  min-width: 0;
+}
+
+.card-grid > * {
+  min-width: 0;
 }
 
 .card-grid--4 {
@@ -445,6 +579,9 @@ summary:focus-visible {
 }
 
 .feature-card {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
@@ -475,9 +612,13 @@ summary:focus-visible {
   grid-template-columns: repeat(2, 1fr);
   gap: 0.85rem;
   margin-top: 2rem;
+  min-width: 0;
 }
 
 .chip-grid li {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
   border-left: 3px solid var(--color-accent);
@@ -506,9 +647,13 @@ summary:focus-visible {
   gap: 1.5rem;
   margin-top: 2rem;
   counter-reset: step;
+  min-width: 0;
 }
 
 .steps__item {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
@@ -544,6 +689,11 @@ summary:focus-visible {
   display: grid;
   gap: 2rem;
   margin-top: 2rem;
+  min-width: 0;
+}
+
+.offer > * {
+  min-width: 0;
 }
 
 .offer__list {
@@ -554,6 +704,8 @@ summary:focus-visible {
 }
 
 .offer__list li {
+  min-width: 0;
+  overflow-wrap: anywhere;
   padding-left: 1.6rem;
   position: relative;
   font-weight: 500;
@@ -615,16 +767,24 @@ summary:focus-visible {
   grid-template-columns: 1fr;
   gap: 1.25rem;
   margin-top: 2rem;
+  width: 100%;
+  min-width: 0;
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  padding: 1.75rem;
+  padding: clamp(1.1rem, 5vw, 1.75rem);
+  position: relative;
+}
+
+.form > * {
+  min-width: 0;
 }
 
 .form__row {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
+  min-width: 0;
 }
 
 .form__row--full {
@@ -651,6 +811,9 @@ summary:focus-visible {
   color: var(--color-text);
   transition: border-color var(--transition-fast);
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .form input:focus,
@@ -673,12 +836,22 @@ summary:focus-visible {
   min-height: 1.1em;
 }
 
+/* Visually hidden without a large negative offset — a `left: -9999px`
+   honeypot sitting outside its containing block is a classic cause of
+   phantom horizontal scroll on mobile browsers, so this keeps the box
+   in place and just clips it to nothing instead. */
 .form__honeypot {
   position: absolute;
-  left: -9999px;
+  top: 0;
+  left: 0;
   width: 1px;
   height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
   overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
 }
 
 .form__checkbox-label {
@@ -700,7 +873,9 @@ summary:focus-visible {
   grid-column: 1 / -1;
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 1rem;
+  min-width: 0;
 }
 
 .btn__spinner {
@@ -721,6 +896,7 @@ summary:focus-visible {
   font-weight: 600;
   font-size: 0.95rem;
   min-height: 1.4em;
+  overflow-wrap: anywhere;
 }
 
 .form__status.is-success {
@@ -734,6 +910,7 @@ summary:focus-visible {
 .contact-fallback {
   margin-top: 1.5rem;
   font-size: 0.92rem;
+  overflow-wrap: anywhere;
 }
 
 /* --------------------------------------------------------------------
@@ -800,6 +977,11 @@ summary:focus-visible {
   flex-direction: column;
   gap: 1rem;
   justify-content: space-between;
+  min-width: 0;
+}
+
+.footer__grid > * {
+  min-width: 0;
 }
 
 .footer__brand {
@@ -811,6 +993,7 @@ summary:focus-visible {
 
 .footer__email {
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .footer__email a {
@@ -822,11 +1005,31 @@ summary:focus-visible {
   color: #a7a9ac;
   max-width: 52ch;
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
 /* --------------------------------------------------------------------
    Breakpoints
    -------------------------------------------------------------------- */
+@media (min-width: 480px) {
+  /* Two equal columns once there's enough room; below this the metric
+     cards and case-study thumbnails stack to a single/two-up column so
+     nothing is forced narrower than its content can safely wrap to. */
+  .metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .case-study__images {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 479.98px) {
+  .case-study__images {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (min-width: 768px) {
   .nav__toggle {
     display: none;
