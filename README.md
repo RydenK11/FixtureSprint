@@ -14,9 +14,9 @@ script.js            Mobile nav, smooth scroll, form validation/AJAX, footer yea
 404.html             Custom "page not found" page for GitHub Pages
 CNAME.example        Example custom-domain file (see "Connecting a custom domain")
 README.md            This file
-assets/              Put jig-finished.jpg, gpu-stand.jpg, jig-cad.jpg,
-                     before-after.mp4, poster.jpg here (currently empty
-                     placeholders — see "Placeholders to replace")
+assets/              hero-jig-and-stand.jpg, gpu-stand.jpg, jig-empty.jpg,
+                     jig-loaded.jpg — all in place (see "Placeholders to
+                     replace" for what's still outstanding)
 ```
 
 ---
@@ -26,8 +26,8 @@ assets/              Put jig-finished.jpg, gpu-stand.jpg, jig-cad.jpg,
 No build step is required. Either:
 
 - Double-click `index.html` to open it directly in a browser, **or**
-- Serve the folder locally (recommended, so relative paths and the video
-  behave exactly like they will on GitHub Pages):
+- Serve the folder locally (recommended, so relative image paths behave
+  exactly like they will on GitHub Pages):
 
   ```bash
   # From inside the FixtureSprint folder:
@@ -162,13 +162,11 @@ Every placeholder is marked in the source with an HTML comment
 `PLACEHOLDER` to jump to each one. Full list:
 
 ### Content placeholders
-- [ ] **Case study metrics** — in `index.html`, the `.metrics` block:
-  - `[BEFORE_TIME]` — hands-on time before the fixture
-  - `[AFTER_TIME]` — hands-on time after the fixture
-  - `[TIME_REDUCTION]` — measured time reduction
-  - `[PRINT_COST]` — fixture print cost
-  Only replace these with real, verified numbers from the actual
-  engagement — do not publish estimated or invented figures.
+- [x] **Case study metrics** — in `index.html`, the `.metrics` block, now
+      shows verified figures from three timed assemblies: 142 sec before,
+      77 sec after, 65 sec/unit saved, 46% reduction. The former "Fixture
+      Print Cost" card was removed since no verified value exists for it
+      yet — add it back only once a real number is available.
 
 ### Technical placeholders
 - [ ] **Formspree endpoint** — `REPLACE_WITH_FORM_ID` in the form's
@@ -180,17 +178,17 @@ Every placeholder is marked in the source with an HTML comment
       `index.html` (contact section and footer). Replace every instance
       with the real business email.
 
-### Assets (all currently blank placeholders — the `assets/` folder only
-contains a `.gitkeep` so the empty folder is tracked by git)
-- [ ] `assets/jig-finished.jpg` — used in the hero and case study
-- [ ] `assets/gpu-stand.jpg` — used in the case study
-- [ ] `assets/jig-cad.jpg` — used in the case study
-- [ ] `assets/before-after.mp4` — case-study before/after video
-- [ ] `assets/poster.jpg` — poster image for the video
+### Assets
+- [x] `assets/hero-jig-and-stand.jpg` — hero image and Open Graph/Twitter
+      preview image
+- [x] `assets/gpu-stand.jpg` — case-study gallery, finished GPU support product
+- [x] `assets/jig-empty.jpg` — case-study gallery, empty fixture
+- [x] `assets/jig-loaded.jpg` — case-study gallery, fixture loaded with parts
 
-Add real files with these exact filenames to the `assets/` folder, then
-commit and push — no HTML/CSS changes are required since the markup
-already references these relative paths.
+All four images are in place. The case-study video (`assets/before-after.mp4`,
+`assets/poster.jpg`) was removed from the page entirely rather than left as
+a placeholder — there was no verified footage to show. If a before/after
+clip becomes available later, it can be re-added as a new section.
 
 ### Business name
 - [ ] "FixtureSprint" appears throughout `index.html` (title, meta tags,

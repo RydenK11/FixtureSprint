@@ -378,8 +378,12 @@ summary:focus-visible {
   width: 100%;
   min-width: 0;
   max-width: 100%;
-  aspect-ratio: 9 / 7;
-  object-fit: cover;
+  height: auto;
+  /* No fixed aspect-ratio here on purpose: the box takes on the image's
+     own intrinsic ratio (from its width/height attributes) so nothing
+     is cropped. object-fit: contain is a safety net in case a future
+     replacement image is given an explicit height that doesn't match. */
+  object-fit: contain;
   background-color: var(--color-surface-muted);
 }
 
@@ -467,7 +471,10 @@ summary:focus-visible {
 
 .case-study__images {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  /* Mobile-first: one column on narrow phones, two on tablet (768px,
+     matching the rest of the site's tablet breakpoint), three in a
+     single row once there's room on desktop (1024px). */
+  grid-template-columns: 1fr;
   gap: 0.75rem;
   min-width: 0;
 }
@@ -477,7 +484,9 @@ summary:focus-visible {
   min-width: 0;
   max-width: 100%;
   aspect-ratio: 4 / 3;
-  object-fit: cover;
+  /* contain, not cover: equal card sizes without cropping any part of
+     the fixture or product out of frame. */
+  object-fit: contain;
   border-radius: var(--radius);
   border: 1px solid var(--color-border);
   background-color: var(--color-surface-muted);
@@ -539,25 +548,6 @@ summary:focus-visible {
   color: var(--color-accent);
   overflow-wrap: anywhere;
   word-break: break-word;
-}
-
-.video-wrapper {
-  width: 100%;
-  min-width: 0;
-  max-width: 100%;
-  margin-top: 2.5rem;
-  border-radius: var(--radius);
-  overflow: hidden;
-  border: 1px solid var(--color-border);
-  background-color: #000;
-}
-
-.video-wrapper__video {
-  width: 100%;
-  min-width: 0;
-  max-width: 100%;
-  aspect-ratio: 16 / 9;
-  background-color: #000;
 }
 
 /* --------------------------------------------------------------------
@@ -1013,19 +1003,9 @@ summary:focus-visible {
    -------------------------------------------------------------------- */
 @media (min-width: 480px) {
   /* Two equal columns once there's enough room; below this the metric
-     cards and case-study thumbnails stack to a single/two-up column so
-     nothing is forced narrower than its content can safely wrap to. */
+     cards stack to a single column so nothing is forced narrower than
+     its content can safely wrap to. */
   .metrics {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .case-study__images {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-@media (max-width: 479.98px) {
-  .case-study__images {
     grid-template-columns: repeat(2, 1fr);
   }
 }
@@ -1066,8 +1046,8 @@ summary:focus-visible {
     align-items: start;
   }
 
-  .metrics {
-    grid-template-columns: repeat(4, 1fr);
+  .case-study__images {
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .offer {
@@ -1093,6 +1073,10 @@ summary:focus-visible {
 
   .hero {
     padding: 4.5rem 0 5rem;
+  }
+
+  .case-study__images {
+    grid-template-columns: repeat(3, 1fr);
   }
 
   .card-grid--4 {
