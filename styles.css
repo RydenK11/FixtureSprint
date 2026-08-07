@@ -483,9 +483,11 @@ summary:focus-visible {
   width: 100%;
   min-width: 0;
   max-width: 100%;
-  aspect-ratio: 4 / 3;
-  /* contain, not cover: equal card sizes without cropping any part of
-     the fixture or product out of frame. */
+  /* The source photos are square (1254x1254). Matching the box ratio to
+     the actual image ratio means object-fit: contain has no letterboxing
+     to do, so the border hugs the image itself instead of a rectangle
+     with empty space on either side. */
+  aspect-ratio: 1 / 1;
   object-fit: contain;
   border-radius: var(--radius);
   border: 1px solid var(--color-border);
