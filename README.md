@@ -79,17 +79,17 @@ git push -u origin main
 
 ---
 
-## 5. Creating a Formspree form and replacing REPLACE_WITH_FORM_ID
+## 5. Creating a Formspree form and updating the endpoint
+
+The live form currently submits to `https://formspree.io/f/mzepznno`. If
+you ever need to recreate the form (e.g. a new Formspree account) or
+point it at a different one:
 
 1. Go to https://formspree.io and create a free account.
 2. Create a new form and copy its **Form ID** (the string after `/f/` in
    the endpoint Formspree gives you, e.g. `https://formspree.io/f/abc123xy`).
-3. Open `index.html` and find the comment block:
-   ```html
-   <!-- PLACEHOLDER (2): FORMSPREE ENDPOINT ... -->
-   ```
-   Replace `REPLACE_WITH_FORM_ID` in the form's `action` attribute with
-   your real form ID.
+3. Open `index.html` and find the `<form id="intakeForm" ...>` element,
+   then replace the `action` attribute's Form ID with your new one.
 4. Commit and push the change. `script.js` reads the `action` attribute
    automatically, so no JavaScript edits are needed.
 5. Submit a real test entry from the live site once and confirm it
@@ -169,14 +169,15 @@ Every placeholder is marked in the source with an HTML comment
       yet — add it back only once a real number is available.
 
 ### Technical placeholders
-- [ ] **Formspree endpoint** — `REPLACE_WITH_FORM_ID` in the form's
-      `action` attribute in `index.html` (see section 5 above).
+- [x] **Formspree endpoint** — the form's `action` attribute in `index.html`
+      now points to the live form at `https://formspree.io/f/mzepznno`
+      (see section 5 above).
 - [ ] **Domain** — `https://example.com/` in the `<link rel="canonical">`,
-      Open Graph `og:url`, and Twitter meta tags in `index.html`'s `<head>`;
-      also the `CNAME` file itself (see sections 4 and 6).
-- [ ] **Contact email** — `hello@rapidtoolingworks.com` appears in
-      `index.html` (contact section and footer). Replace every instance
-      with the real business email.
+      Open Graph `og:url`, and Twitter meta tags in `index.html`'s `<head>`
+      still needs to be updated to the live domain (the `CNAME` file
+      itself already points to `fixturesprint.com` — see sections 4 and 6).
+- [x] **Contact email** — `hello@fixturesprint.com` is now used everywhere
+      in `index.html` (contact section and footer).
 
 ### Assets
 - [x] `assets/hero-jig-and-stand.jpg` — hero image and Open Graph/Twitter
@@ -191,9 +192,11 @@ a placeholder — there was no verified footage to show. If a before/after
 clip becomes available later, it can be re-added as a new section.
 
 ### Business name
-- [ ] "FixtureSprint" appears throughout `index.html` (title, meta tags,
-      nav logo, hero, footer) and in `404.html`. Search both files for
-      `FixtureSprint` if the business name ever changes.
+- [x] "FixtureSprint" is the confirmed company name and appears throughout
+      `index.html` (title, meta tags, nav logo, hero, footer) and in
+      `404.html`. No references to any prior business name remain
+      anywhere in the repository. Search both files for `FixtureSprint`
+      if the business name ever changes again.
 
 ---
 
