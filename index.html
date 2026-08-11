@@ -527,6 +527,84 @@
   </div>
 </footer>
 
+<!-- ============================================================
+     GOOGLE ADS LEAD-CAPTURE MODAL
+     Shown only to paid-search visitors (a `gclid` param, or
+     `utm_source=google`), roughly 4 seconds after page load, at most
+     once per browser session. See script.js for the eligibility check,
+     show/hide logic, focus handling, and Formspree submit handler.
+     Submits to the same Formspree endpoint as the main contact form,
+     tagged with hidden `source`/`form_type` fields so leads from this
+     popup are distinguishable in the Formspree dashboard.
+     ============================================================ -->
+<div class="ads-modal-overlay" id="adsModalOverlay" hidden>
+  <div
+    class="ads-modal"
+    id="adsModal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="adsModalTitle"
+    aria-describedby="adsModalDesc"
+  >
+    <button type="button" class="ads-modal__close" id="adsModalClose" aria-label="Close">
+      &times;
+    </button>
+
+    <h2 class="ads-modal__title" id="adsModalTitle">Have a Repetitive Production Problem?</h2>
+    <p class="ads-modal__desc" id="adsModalDesc">
+      Tell us what's being manually held, aligned, positioned, clamped, or inspected.
+      We'll tell you if a custom fixture looks like a good fit.
+    </p>
+
+    <form id="adsModalForm" class="form ads-modal__form" action="https://formspree.io/f/mzepznno" method="POST" novalidate>
+      <div class="form__row">
+        <label for="adsFirstName">First name <span class="required">*</span></label>
+        <input type="text" id="adsFirstName" name="firstName" required autocomplete="given-name">
+        <span class="form__error" id="adsFirstName-error"></span>
+      </div>
+
+      <div class="form__row">
+        <label for="adsWorkEmail">Work email <span class="required">*</span></label>
+        <input type="email" id="adsWorkEmail" name="workEmail" required autocomplete="email">
+        <span class="form__error" id="adsWorkEmail-error"></span>
+      </div>
+
+      <div class="form__row">
+        <label for="adsCompany">Company <span class="required">*</span></label>
+        <input type="text" id="adsCompany" name="company" required autocomplete="organization">
+        <span class="form__error" id="adsCompany-error"></span>
+      </div>
+
+      <div class="form__row">
+        <label for="adsProblem">Production problem <span class="required">*</span></label>
+        <textarea id="adsProblem" name="problem" rows="4" required placeholder="Briefly describe the repetitive process or bottleneck."></textarea>
+        <span class="form__error" id="adsProblem-error"></span>
+      </div>
+
+      <!-- Hidden fields tagging this lead as coming from the Google Ads popup -->
+      <input type="hidden" name="source" value="Google Ads Popup">
+      <input type="hidden" name="form_type" value="Paid Search Fit Assessment">
+
+      <!-- Honeypot anti-spam field: hidden from real users, bots often fill it in -->
+      <div class="form__honeypot" aria-hidden="true">
+        <label for="adsGotcha">Leave this field blank</label>
+        <input type="text" id="adsGotcha" name="_gotcha" tabindex="-1" autocomplete="off">
+      </div>
+
+      <div class="form__submit-row">
+        <button type="submit" class="btn btn--primary" id="adsModalSubmitBtn">
+          <span class="btn__label">Get a Free Fit Assessment</span>
+          <span class="btn__spinner" hidden aria-hidden="true"></span>
+        </button>
+      </div>
+
+      <p class="ads-modal__note">No obligation. If it isn't a good fit for FDM tooling, we'll tell you.</p>
+
+      <div class="form__status" id="adsModalStatus" role="status" aria-live="polite"></div>
+    </form>
+  </div>
+</div>
+
 <script src="script.js?v=2"></script>
 </body>
 </html>
