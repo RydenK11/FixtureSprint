@@ -7,6 +7,23 @@
   "use strict";
 
   /* ------------------------------------------------------------------
+     Google Ads conversion tracking — "FixtureSprint - Form Submission"
+     Shared by both the main contact form and the Google Ads popup form
+     (see below), so it's defined once at the top of this file's shared
+     scope rather than nested inside either form's own handler. Call
+     this only after Formspree has confirmed a successful HTTP response
+     for a real submission — never on page load, popup open, button
+     click, validation, or a failed/error response.
+     ------------------------------------------------------------------ */
+  function trackGoogleAdsLead() {
+    if (typeof gtag === 'function') {
+      gtag('event', 'conversion', {
+        'send_to': 'AW-18384514901/DvBmCPm6kuAcENXetb5E'
+      });
+    }
+  }
+
+  /* ------------------------------------------------------------------
      Mobile navigation toggle
      ------------------------------------------------------------------ */
   var navToggle = document.getElementById("navToggle");
@@ -160,8 +177,18 @@
       }
     });
 
+    var isSubmittingForm = false;
+
     form.addEventListener("submit", function (event) {
       event.preventDefault();
+
+      // Guard against double-clicks or an Enter-key resubmit firing a
+      // second "submit" event while a request is already in flight —
+      // this also protects against a duplicate Google Ads conversion.
+      if (isSubmittingForm) {
+        return;
+      }
+
       showStatus("", null);
 
       if (!validateForm()) {
@@ -171,6 +198,7 @@
 
       // Honeypot check: if the hidden field has a value, silently drop the
       // submission without hitting the network (bots fill hidden fields).
+      // This is not a real lead, so no conversion is tracked here.
       var honeypot = form.querySelector('[name="_gotcha"]');
       if (honeypot && honeypot.value) {
         showStatus(SUCCESS_MESSAGE, "success");
@@ -178,6 +206,7 @@
         return;
       }
 
+      isSubmittingForm = true;
       setLoading(true);
 
       var formData = new FormData(form);
@@ -191,6 +220,9 @@
       })
         .then(function (response) {
           if (response.ok) {
+            // Conversion fires only after Formspree confirms success,
+            // and before the success message is shown.
+            trackGoogleAdsLead();
             showStatus(SUCCESS_MESSAGE, "success");
             form.reset();
           } else {
@@ -201,6 +233,7 @@
           showStatus(ERROR_MESSAGE, "error");
         })
         .finally(function () {
+          isSubmittingForm = false;
           setLoading(false);
         });
     });
@@ -320,14 +353,8 @@
       window.setTimeout(openAdsModal, SHOW_DELAY_MS);
     }
 
-    /* ------------------------------------------------------------------
-       Google Ads conversion tracking placeholder. Call this only after
-       Formspree confirms a successful submission — no conversion ID or
-       label exists yet, so the body intentionally stays empty.
-       ------------------------------------------------------------------ */
-    function trackGoogleAdsLead() {
-      // Google Ads conversion event will be added here.
-    }
+    // trackGoogleAdsLead() is defined once, shared across both forms —
+    // see the top of this file.
 
     var adsSubmitBtn = document.getElementById("adsModalSubmitBtn");
     var adsBtnLabel = adsSubmitBtn ? adsSubmitBtn.querySelector(".btn__label") : null;
