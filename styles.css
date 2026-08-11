@@ -1001,6 +1001,132 @@ summary:focus-visible {
 }
 
 /* --------------------------------------------------------------------
+   Google Ads lead-capture modal
+   Centered card over a dimmed overlay; capped width so it never goes
+   full-screen on desktop, while still using most of the viewport width
+   on mobile. `min()` keeps it clear of the viewport edges at 320px.
+   -------------------------------------------------------------------- */
+.ads-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 1.25rem;
+  background-color: rgba(28, 28, 30, 0.55);
+  overflow-y: auto;
+}
+
+.ads-modal-overlay[hidden] {
+  display: none;
+}
+
+.ads-modal {
+  position: relative;
+  width: min(100%, 26rem);
+  min-width: 0;
+  max-width: 100%;
+  max-height: calc(100vh - 2.5rem);
+  overflow-y: auto;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  padding: 2.25rem 1.5rem 1.5rem;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ads-modal {
+    animation: ads-modal-in 200ms ease;
+  }
+}
+
+@keyframes ads-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ads-modal__close {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  line-height: 1;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.ads-modal__close:hover {
+  color: var(--color-text);
+  background-color: var(--color-surface-muted);
+}
+
+.ads-modal__title {
+  font-size: clamp(1.25rem, 5vw, 1.55rem);
+  margin-bottom: 0.5em;
+  padding-right: 1.75rem;
+  overflow-wrap: anywhere;
+}
+
+.ads-modal__desc {
+  font-size: 0.95rem;
+  margin-bottom: 1.5rem;
+  overflow-wrap: anywhere;
+}
+
+/* Strip the standalone-card look .form normally has (border, background,
+   its own padding) since the modal card already provides all of that —
+   here it's just the grid layout for the fields.
+   Doubled-up selector (.ads-modal .ads-modal__form) intentionally out-
+   specifies the shared .form class's own 768px breakpoint rule below,
+   so this modal stays single-column at every width instead of picking
+   up the two-column desktop layout meant for the full contact form. */
+.ads-modal .ads-modal__form {
+  margin-top: 0;
+  padding: 0;
+  border: none;
+  background-color: transparent;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.ads-modal__note {
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  text-align: center;
+  margin: 0.25rem 0 0;
+  overflow-wrap: anywhere;
+}
+
+.ads-modal__success {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--color-success);
+  text-align: center;
+  margin: 0.5rem 0;
+  overflow-wrap: anywhere;
+}
+
+/* --------------------------------------------------------------------
    Breakpoints
    -------------------------------------------------------------------- */
 @media (min-width: 480px) {
