@@ -243,13 +243,13 @@
      Google Ads lead-capture modal
      Shown only to visitors who arrived via paid Google Ads traffic
      (a `gclid` URL parameter, or `utm_source=google`) — never to
-     direct, organic, or cold-email visitors. Appears ~4s after load
+     direct, organic, or cold-email visitors. Appears ~1.5s after load
      and, once dismissed, is not shown again for the rest of the
      browser session (tracked via sessionStorage, not a cookie).
      ------------------------------------------------------------------ */
   (function () {
     var SESSION_DISMISSED_KEY = "fsAdsModalDismissed";
-    var SHOW_DELAY_MS = 4000;
+    var SHOW_DELAY_MS = 1500;
     var AUTO_CLOSE_AFTER_SUCCESS_MS = 3000;
 
     var overlay = document.getElementById("adsModalOverlay");
