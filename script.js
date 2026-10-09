@@ -24,6 +24,141 @@
   }
 
   /* ------------------------------------------------------------------
+     Google Ads Test #2 — shared event tracking + attribution capture
+
+     ANALYTICS SETUP AS FOUND (read before editing this block):
+       - Only a Google Ads tag is installed (gtag.js, AW-18384514901,
+         wired up in index.html's <head>). There is no GA4 property
+         (no gtag('config', 'G-XXXXXXXXXX')) and no GTM container
+         anywhere in this repo.
+       - That means GA4's automatic `page_view` and `user_engagement`
+         events are NOT available yet — those come from a GA4 property
+         specifically, and inventing a measurement ID here would send
+         data nowhere (or into someone else's property by mistake).
+         MANUAL SETUP REQUIRED: create a GA4 property, get its
+         G-XXXXXXXXXX ID, and add one `gtag('config', 'G-...')` call
+         next to the existing Ads config in index.html.
+       - trackEvent() below is written to be forward-compatible with
+         that: it just calls the existing shared gtag() function with
+         no `send_to`, so once a GA4 config is added, every event
+         already being fired will start flowing into GA4 with zero
+         further code changes. Today, with only the Ads tag configured,
+         these calls are inert from a GA4 reporting standpoint but are
+         still a real, visible DevTools/dataLayer trail for debugging.
+       - Do not add a second <script src="...gtag/js..."> tag or a
+         second gtag('config', 'AW-18384514901') call — one of each
+         already exists in index.html.
+  ------------------------------------------------------------------ */
+  function trackEvent(name, params) {
+    if (typeof gtag === 'function') {
+      gtag('event', name, params || {});
+    }
+  }
+
+  // A stable, non-PII identifier per form per page load, carried in the
+  // Formspree submission (as a hidden field) and in the generate_lead
+  // event, so the same confirmed inquiry can be matched across the
+  // Formspree record, GA4, and Google Ads instead of being double-
+  // counted if something retries or re-renders.
+  function makeLeadId() {
+    if (window.crypto && typeof window.crypto.randomUUID === "function") {
+      return window.crypto.randomUUID();
+    }
+    return "lead-" + Date.now() + "-" + Math.random().toString(16).slice(2);
+  }
+
+  // Reads attribution params from the CURRENT URL only — nothing here
+  // ever calls history.pushState/replaceState or reassigns
+  // location.href, so gclid/gbraid/wbraid/utm_* are never stripped
+  // before this (or the Ads tag) reads them.
+  function getAttributionSnapshot() {
+    var params = new URLSearchParams(window.location.search);
+    return {
+      utm_source: params.get("utm_source") || "",
+      utm_medium: params.get("utm_medium") || "",
+      utm_campaign: params.get("utm_campaign") || "",
+      utm_term: params.get("utm_term") || "",
+      utm_content: params.get("utm_content") || "",
+      gclid: params.get("gclid") || "",
+      gbraid: params.get("gbraid") || "",
+      wbraid: params.get("wbraid") || "",
+      landing_page: window.location.pathname
+    };
+  }
+
+  // Fills a form's hidden attribution/lead-id fields from a prefix-based
+  // id scheme (e.g. "attrUtmSource" for the main form, "adsAttrUtmSource"
+  // for the popup) so both forms can share this one function.
+  function populateAttributionFields(idPrefix) {
+    var snapshot = getAttributionSnapshot();
+    var leadId = makeLeadId();
+    var fieldMap = {
+      UtmSource: snapshot.utm_source,
+      UtmMedium: snapshot.utm_medium,
+      UtmCampaign: snapshot.utm_campaign,
+      UtmTerm: snapshot.utm_term,
+      UtmContent: snapshot.utm_content,
+      Gclid: snapshot.gclid,
+      Gbraid: snapshot.gbraid,
+      Wbraid: snapshot.wbraid,
+      LandingPage: snapshot.landing_page
+    };
+    Object.keys(fieldMap).forEach(function (suffix) {
+      var field = document.getElementById(idPrefix + suffix);
+      if (field) {
+        field.value = fieldMap[suffix];
+      }
+    });
+    var leadIdField = document.getElementById(idPrefix + "LeadId");
+    if (leadIdField) {
+      leadIdField.value = leadId;
+    }
+    return leadId;
+  }
+
+  function stampSubmittedAt(idPrefix) {
+    var field = document.getElementById(idPrefix + "SubmittedAt");
+    if (field) {
+      field.value = new Date().toISOString();
+    }
+  }
+
+  // case_study_view — fires once, the first time the case study section
+  // is at least 40% visible in the viewport, via IntersectionObserver
+  // (no scroll-event polling). Not tied to any form, so it's safe for
+  // this to run unconditionally.
+  (function () {
+    var caseStudySection = document.getElementById("case-study");
+    if (!caseStudySection || typeof IntersectionObserver !== "function") {
+      return;
+    }
+    var hasFired = false;
+    var observer = new IntersectionObserver(
+      function (entries) {
+        entries.forEach(function (entry) {
+          if (!hasFired && entry.isIntersecting) {
+            hasFired = true;
+            trackEvent("case_study_view", {});
+            observer.disconnect();
+          }
+        });
+      },
+      { threshold: 0.4 }
+    );
+    observer.observe(caseStudySection);
+  })();
+
+  // fixture_cta_click — delegated listener so every primary inquiry CTA
+  // (hero, offer, nav) reports which one was clicked, without needing a
+  // separate handler wired to each button.
+  document.addEventListener("click", function (event) {
+    var cta = event.target.closest ? event.target.closest("[data-cta]") : null;
+    if (cta) {
+      trackEvent("fixture_cta_click", { cta_location: cta.getAttribute("data-cta") });
+    }
+  });
+
+  /* ------------------------------------------------------------------
      Mobile navigation toggle
      ------------------------------------------------------------------ */
   var navToggle = document.getElementById("navToggle");
@@ -84,16 +219,20 @@
     var btnSpinner = submitBtn ? submitBtn.querySelector(".btn__spinner") : null;
     var statusEl = document.getElementById("formStatus");
 
-    var SUCCESS_MESSAGE = "Your production problem has been received. We’ll review whether it is a good fit for rapid tooling.";
+    var SUCCESS_MESSAGE = "Your tooling inquiry has been received. We’ll review it and follow up by email.";
     var ERROR_MESSAGE = "The form could not be submitted. Please try again or email us directly.";
 
     var requiredFields = [
       { id: "fullName", message: "Please enter your full name." },
       { id: "workEmail", message: "Please enter a valid work email." },
       { id: "companyName", message: "Please enter your company name." },
-      { id: "problem", message: "Please describe the production problem." },
-      { id: "consent", message: "Please acknowledge before submitting." }
+      { id: "problem", message: "Please describe your tooling problem." }
     ];
+
+    // Attribution is captured once, at page load, so it reflects how
+    // this visitor actually arrived — not whatever the URL happens to
+    // look like several minutes later when they submit.
+    var contactLeadId = populateAttributionFields("attr");
 
     function setFieldError(id, message) {
       var field = document.getElementById(id);
@@ -149,7 +288,7 @@
         btnSpinner.hidden = !isLoading;
       }
       if (btnLabel) {
-        btnLabel.textContent = isLoading ? "Sending…" : "Send Your Problem";
+        btnLabel.textContent = isLoading ? "Sending…" : "Send Tooling Inquiry";
       }
     }
 
@@ -177,6 +316,21 @@
       }
     });
 
+    // form_start — fires once, on the visitor's first real interaction
+    // with the form (not on page load, and not for the honeypot field).
+    var hasFiredFormStart = false;
+    form.addEventListener(
+      "focusin",
+      function (event) {
+        if (hasFiredFormStart || event.target.name === "_gotcha") {
+          return;
+        }
+        hasFiredFormStart = true;
+        trackEvent("form_start", { form: "contact" });
+      },
+      true
+    );
+
     var isSubmittingForm = false;
 
     form.addEventListener("submit", function (event) {
@@ -193,12 +347,14 @@
 
       if (!validateForm()) {
         showStatus(ERROR_MESSAGE, "error");
+        trackEvent("form_error", { form: "contact", reason: "validation" });
         return;
       }
 
       // Honeypot check: if the hidden field has a value, silently drop the
       // submission without hitting the network (bots fill hidden fields).
-      // This is not a real lead, so no conversion is tracked here.
+      // This is not a real lead, so no conversion or generate_lead event
+      // is tracked here.
       var honeypot = form.querySelector('[name="_gotcha"]');
       if (honeypot && honeypot.value) {
         showStatus(SUCCESS_MESSAGE, "success");
@@ -208,6 +364,7 @@
 
       isSubmittingForm = true;
       setLoading(true);
+      stampSubmittedAt("attr");
 
       var formData = new FormData(form);
 
@@ -220,17 +377,23 @@
       })
         .then(function (response) {
           if (response.ok) {
-            // Conversion fires only after Formspree confirms success,
-            // and before the success message is shown.
+            // Conversion and generate_lead fire only after Formspree
+            // confirms success, and before the success message is shown.
+            // generate_lead carries the same lead_id submitted in the
+            // hidden field, so this one confirmed inquiry isn't double-
+            // counted against the Formspree record or the Ads conversion.
             trackGoogleAdsLead();
+            trackEvent("generate_lead", { form: "contact", lead_id: contactLeadId });
             showStatus(SUCCESS_MESSAGE, "success");
             form.reset();
           } else {
             showStatus(ERROR_MESSAGE, "error");
+            trackEvent("form_error", { form: "contact", reason: "server_error", status: response.status });
           }
         })
         .catch(function () {
           showStatus(ERROR_MESSAGE, "error");
+          trackEvent("form_error", { form: "contact", reason: "network" });
         })
         .finally(function () {
           isSubmittingForm = false;
@@ -260,6 +423,11 @@
     if (!overlay || !modal || !closeBtn || !adsForm) {
       return;
     }
+
+    // Same attribution capture as the main contact form — see
+    // populateAttributionFields() above. This popup is itself
+    // paid-search-only, so this is often the more important copy.
+    var adsLeadId = populateAttributionFields("adsAttr");
 
     function isGoogleAdsTraffic() {
       var params = new URLSearchParams(window.location.search);
@@ -446,6 +614,20 @@
       });
     });
 
+    // form_start — same one-time pattern as the main contact form.
+    var hasFiredAdsFormStart = false;
+    adsForm.addEventListener(
+      "focusin",
+      function (event) {
+        if (hasFiredAdsFormStart || event.target.name === "_gotcha") {
+          return;
+        }
+        hasFiredAdsFormStart = true;
+        trackEvent("form_start", { form: "ads_popup" });
+      },
+      true
+    );
+
     adsForm.addEventListener("submit", function (event) {
       event.preventDefault();
 
@@ -458,6 +640,7 @@
 
       if (!validateAdsForm()) {
         showAdsFormStatus("Please fill in the required fields.", "error");
+        trackEvent("form_error", { form: "ads_popup", reason: "validation" });
         return;
       }
 
@@ -470,6 +653,7 @@
 
       isSubmittingAdsForm = true;
       setAdsFormLoading(true);
+      stampSubmittedAt("adsAttr");
 
       var formData = new FormData(adsForm);
 
@@ -483,17 +667,20 @@
         .then(function (response) {
           if (response.ok) {
             trackGoogleAdsLead();
+            trackEvent("generate_lead", { form: "ads_popup", lead_id: adsLeadId });
             adsForm.innerHTML =
               '<p class="ads-modal__success">Thanks — we\'ll review the process and get back to you shortly.</p>';
             window.setTimeout(closeAdsModal, AUTO_CLOSE_AFTER_SUCCESS_MS);
           } else {
             showAdsFormStatus("The form could not be submitted. Please try again or email us directly.", "error");
+            trackEvent("form_error", { form: "ads_popup", reason: "server_error", status: response.status });
             isSubmittingAdsForm = false;
             setAdsFormLoading(false);
           }
         })
         .catch(function () {
           showAdsFormStatus("The form could not be submitted. Please try again or email us directly.", "error");
+          trackEvent("form_error", { form: "ads_popup", reason: "network" });
           isSubmittingAdsForm = false;
           setAdsFormLoading(false);
         });
