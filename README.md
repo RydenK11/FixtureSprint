@@ -172,10 +172,9 @@ Every placeholder is marked in the source with an HTML comment
 - [x] **Formspree endpoint** — the form's `action` attribute in `index.html`
       now points to the live form at `https://formspree.io/f/mzepznno`
       (see section 5 above).
-- [ ] **Domain** — `https://example.com/` in the `<link rel="canonical">`,
-      Open Graph `og:url`, and Twitter meta tags in `index.html`'s `<head>`
-      still needs to be updated to the live domain (the `CNAME` file
-      itself already points to `fixturesprint.com` — see sections 4 and 6).
+- [x] **Domain** — `<link rel="canonical">`, Open Graph `og:url`, and
+      Twitter meta tags in `index.html`'s `<head>` now point to
+      `https://fixturesprint.com/`, matching the `CNAME` file.
 - [x] **Contact email** — `hello@fixturesprint.com` is now used everywhere
       in `index.html` (contact section and footer).
 
@@ -197,6 +196,46 @@ clip becomes available later, it can be re-added as a new section.
       `404.html`. No references to any prior business name remain
       anywhere in the repository. Search both files for `FixtureSprint`
       if the business name ever changes again.
+
+### Analytics — GA4 property not yet created
+- [ ] **GA4 measurement ID** — only a Google Ads tag (`AW-18384514901`)
+      is installed in `index.html`'s `<head>`; there is no GA4 property
+      and no GTM container anywhere in this repo. That means GA4's
+      automatic `page_view` and `user_engagement` events aren't
+      available yet, and no inquiry data is landing in GA4 today.
+
+      To enable it: create a GA4 property in Google Analytics, copy its
+      `G-XXXXXXXXXX` measurement ID, and add one line next to the
+      existing Ads config in `index.html`:
+      ```html
+      gtag('config', 'G-XXXXXXXXXX');
+      ```
+      No other code changes are needed — `script.js` already fires
+      `case_study_view`, `fixture_cta_click`, `form_start`, `form_error`,
+      and `generate_lead` through the same shared `gtag()` function (see
+      the "Google Ads Test #2" comment block near the top of the file),
+      so every one of those events starts flowing into GA4 the moment
+      the config line above is added.
+- [ ] **Disable GA4 Enhanced Measurement's "Form interactions" toggle**
+      when creating the GA4 property above. Enhanced Measurement ships
+      with its own automatic `form_start` detection, which would fire
+      alongside (and double-count against) the custom `form_start` event
+      `script.js` already sends. Turn it off under the new property's
+      Admin → Data Streams → (this stream) → Enhanced measurement → Form
+      interactions, so the validated custom event stays the one source
+      of truth. No code change is needed for this — it's a one-time
+      toggle in the GA4 UI.
+- [ ] **Google Ads primary conversion configuration** — the conversion
+      action "FixtureSprint - Form Submission" and its `send_to` ID
+      (`AW-18384514901/DvBmCPm6kuAcENXetb5E`) are account-level Google
+      Ads settings that can't be set from website code; confirm in the
+      Google Ads UI that this conversion action exists, is marked
+      Primary, and uses an appropriate attribution/count setting
+      (e.g. "One" per conversion action, not "Every"). The conversion
+      event now also sends a `transaction_id` (the same `lead_id` used
+      in the Formspree record and the `generate_lead` event) — Google
+      Ads uses this automatically for conversion deduplication, no
+      additional account setting is required for that part.
 
 ---
 
