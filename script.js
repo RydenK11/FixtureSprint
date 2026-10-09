@@ -86,12 +86,13 @@
     };
   }
 
-  // Fills a form's hidden attribution/lead-id fields from a prefix-based
-  // id scheme (e.g. "attrUtmSource" for the main form, "adsAttrUtmSource"
-  // for the popup) so both forms can share this one function.
-  function populateAttributionFields(idPrefix) {
-    var snapshot = getAttributionSnapshot();
-    var leadId = makeLeadId();
+  // Fills a form's hidden attribution fields (utm_*, gclid/gbraid/wbraid,
+  // landing_page) from a snapshot captured once at page load — not by
+  // re-reading the URL each time — so the ORIGINAL arrival attribution
+  // is what ends up on every inquiry from this visit, even after
+  // form.reset() (which clears hidden fields back to their blank HTML
+  // default) runs following a successful submission.
+  function applyAttributionSnapshot(idPrefix, snapshot) {
     var fieldMap = {
       UtmSource: snapshot.utm_source,
       UtmMedium: snapshot.utm_medium,
@@ -109,11 +110,22 @@
         field.value = fieldMap[suffix];
       }
     });
+  }
+
+  // Generates a fresh lead_id and writes it to the form's hidden field,
+  // returning the new value. Called once at setup (for the first
+  // inquiry) and again right after a successful submission (so the
+  // *next* inquiry in the same session gets its own unique id) — never
+  // while a submission is still in flight, and never on a failed
+  // attempt, so a retry of the same inquiry keeps the id it started
+  // with instead of being miscounted as two different leads.
+  function generateFreshLeadId(idPrefix) {
     var leadIdField = document.getElementById(idPrefix + "LeadId");
+    var id = makeLeadId();
     if (leadIdField) {
-      leadIdField.value = leadId;
+      leadIdField.value = id;
     }
-    return leadId;
+    return id;
   }
 
   function stampSubmittedAt(idPrefix) {
@@ -231,8 +243,12 @@
 
     // Attribution is captured once, at page load, so it reflects how
     // this visitor actually arrived — not whatever the URL happens to
-    // look like several minutes later when they submit.
-    var contactLeadId = populateAttributionFields("attr");
+    // look like several minutes later when they submit. The snapshot is
+    // re-applied to the hidden fields after every successful submission
+    // too, since form.reset() would otherwise blank them out.
+    var contactAttribution = getAttributionSnapshot();
+    applyAttributionSnapshot("attr", contactAttribution);
+    var contactLeadId = generateFreshLeadId("attr");
 
     function setFieldError(id, message) {
       var field = document.getElementById(id);
@@ -386,6 +402,13 @@
             trackEvent("generate_lead", { form: "contact", lead_id: contactLeadId });
             showStatus(SUCCESS_MESSAGE, "success");
             form.reset();
+            // form.reset() blanks every field back to its HTML default,
+            // including the hidden attribution inputs — restore the
+            // ORIGINAL landing attribution and hand the next inquiry a
+            // fresh lead_id, so a second submission this session is
+            // correctly attributed and not mistaken for the first.
+            applyAttributionSnapshot("attr", contactAttribution);
+            contactLeadId = generateFreshLeadId("attr");
           } else {
             showStatus(ERROR_MESSAGE, "error");
             trackEvent("form_error", { form: "contact", reason: "server_error", status: response.status });
@@ -402,290 +425,12 @@
     });
   }
 
-  /* ------------------------------------------------------------------
-     Google Ads lead-capture modal
-     Shown only to visitors who arrived via paid Google Ads traffic
-     (a `gclid` URL parameter, or `utm_source=google`) — never to
-     direct, organic, or cold-email visitors. Appears ~1.5s after load
-     and, once dismissed, is not shown again for the rest of the
-     browser session (tracked via sessionStorage, not a cookie).
-     ------------------------------------------------------------------ */
-  (function () {
-    var SESSION_DISMISSED_KEY = "fsAdsModalDismissed";
-    var SHOW_DELAY_MS = 1500;
-    var AUTO_CLOSE_AFTER_SUCCESS_MS = 3000;
-
-    var overlay = document.getElementById("adsModalOverlay");
-    var modal = document.getElementById("adsModal");
-    var closeBtn = document.getElementById("adsModalClose");
-    var adsForm = document.getElementById("adsModalForm");
-
-    if (!overlay || !modal || !closeBtn || !adsForm) {
-      return;
-    }
-
-    // Same attribution capture as the main contact form — see
-    // populateAttributionFields() above. This popup is itself
-    // paid-search-only, so this is often the more important copy.
-    var adsLeadId = populateAttributionFields("adsAttr");
-
-    function isGoogleAdsTraffic() {
-      var params = new URLSearchParams(window.location.search);
-      return params.has("gclid") || params.get("utm_source") === "google";
-    }
-
-    function wasDismissedThisSession() {
-      try {
-        return sessionStorage.getItem(SESSION_DISMISSED_KEY) === "true";
-      } catch (e) {
-        // sessionStorage can throw in some privacy modes — fail open
-        // (treat as "not dismissed yet") rather than breaking the page.
-        return false;
-      }
-    }
-
-    function markDismissedThisSession() {
-      try {
-        sessionStorage.setItem(SESSION_DISMISSED_KEY, "true");
-      } catch (e) {
-        /* ignore — worst case the modal can show again this session */
-      }
-    }
-
-    var lastFocusedElement = null;
-
-    function getFocusableElements() {
-      var nodes = modal.querySelectorAll(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-      );
-      return Array.prototype.filter.call(nodes, function (el) {
-        return !el.disabled && el.offsetParent !== null;
-      });
-    }
-
-    function onKeydown(event) {
-      if (event.key === "Escape") {
-        closeAdsModal();
-        return;
-      }
-
-      if (event.key === "Tab") {
-        var focusable = getFocusableElements();
-        if (focusable.length === 0) {
-          return;
-        }
-        var first = focusable[0];
-        var last = focusable[focusable.length - 1];
-        if (event.shiftKey && document.activeElement === first) {
-          event.preventDefault();
-          last.focus();
-        } else if (!event.shiftKey && document.activeElement === last) {
-          event.preventDefault();
-          first.focus();
-        }
-      }
-    }
-
-    function openAdsModal() {
-      overlay.hidden = false;
-      lastFocusedElement = document.activeElement;
-      var firstField = document.getElementById("adsFirstName");
-      if (firstField) {
-        firstField.focus();
-      }
-      document.addEventListener("keydown", onKeydown);
-    }
-
-    function closeAdsModal() {
-      if (overlay.hidden) {
-        return;
-      }
-      overlay.hidden = true;
-      markDismissedThisSession();
-      document.removeEventListener("keydown", onKeydown);
-      if (lastFocusedElement && typeof lastFocusedElement.focus === "function") {
-        lastFocusedElement.focus();
-      }
-    }
-
-    closeBtn.addEventListener("click", closeAdsModal);
-
-    // Clicking the dimmed backdrop (but not the modal card itself) closes it.
-    overlay.addEventListener("click", function (event) {
-      if (event.target === overlay) {
-        closeAdsModal();
-      }
-    });
-
-    if (isGoogleAdsTraffic() && !wasDismissedThisSession()) {
-      window.setTimeout(openAdsModal, SHOW_DELAY_MS);
-    }
-
-    // trackGoogleAdsLead() is defined once, shared across both forms —
-    // see the top of this file.
-
-    var adsSubmitBtn = document.getElementById("adsModalSubmitBtn");
-    var adsBtnLabel = adsSubmitBtn ? adsSubmitBtn.querySelector(".btn__label") : null;
-    var adsBtnSpinner = adsSubmitBtn ? adsSubmitBtn.querySelector(".btn__spinner") : null;
-    var adsStatusEl = document.getElementById("adsModalStatus");
-    var isSubmittingAdsForm = false;
-
-    function setAdsFormLoading(isLoading) {
-      if (!adsSubmitBtn) {
-        return;
-      }
-      adsSubmitBtn.disabled = isLoading;
-      if (adsBtnSpinner) {
-        adsBtnSpinner.hidden = !isLoading;
-      }
-      if (adsBtnLabel) {
-        adsBtnLabel.textContent = isLoading ? "Sending…" : "Get a Free Fit Assessment";
-      }
-    }
-
-    function showAdsFormStatus(message, type) {
-      if (!adsStatusEl) {
-        return;
-      }
-      adsStatusEl.textContent = message;
-      adsStatusEl.classList.remove("is-success", "is-error");
-      if (type) {
-        adsStatusEl.classList.add(type === "success" ? "is-success" : "is-error");
-      }
-    }
-
-    function isValidEmail(value) {
-      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-    }
-
-    function validateAdsForm() {
-      var isValid = true;
-      var fields = [
-        { id: "adsFirstName", message: "Please enter your first name." },
-        { id: "adsWorkEmail", message: "Please enter a valid work email." },
-        { id: "adsCompany", message: "Please enter your company." },
-        { id: "adsProblem", message: "Please describe the production problem." }
-      ];
-
-      fields.forEach(function (fieldDef) {
-        var field = document.getElementById(fieldDef.id);
-        var errorEl = document.getElementById(fieldDef.id + "-error");
-        if (!field) {
-          return;
-        }
-
-        var value = field.value.trim();
-        var hasValue = value.length > 0;
-
-        if (!hasValue) {
-          isValid = false;
-          field.classList.add("is-invalid");
-          if (errorEl) {
-            errorEl.textContent = fieldDef.message;
-          }
-          return;
-        }
-
-        if (fieldDef.id === "adsWorkEmail" && !isValidEmail(value)) {
-          isValid = false;
-          field.classList.add("is-invalid");
-          if (errorEl) {
-            errorEl.textContent = "Please enter a valid email address.";
-          }
-          return;
-        }
-
-        field.classList.remove("is-invalid");
-        if (errorEl) {
-          errorEl.textContent = "";
-        }
-      });
-
-      return isValid;
-    }
-
-    adsForm.querySelectorAll("input, textarea").forEach(function (field) {
-      field.addEventListener("input", function () {
-        field.classList.remove("is-invalid");
-        var errorEl = document.getElementById(field.id + "-error");
-        if (errorEl) {
-          errorEl.textContent = "";
-        }
-      });
-    });
-
-    // form_start — same one-time pattern as the main contact form.
-    var hasFiredAdsFormStart = false;
-    adsForm.addEventListener(
-      "focusin",
-      function (event) {
-        if (hasFiredAdsFormStart || event.target.name === "_gotcha") {
-          return;
-        }
-        hasFiredAdsFormStart = true;
-        trackEvent("form_start", { form: "ads_popup" });
-      },
-      true
-    );
-
-    adsForm.addEventListener("submit", function (event) {
-      event.preventDefault();
-
-      // Guard against double-clicks / repeat submits while one is in flight.
-      if (isSubmittingAdsForm) {
-        return;
-      }
-
-      showAdsFormStatus("", null);
-
-      if (!validateAdsForm()) {
-        showAdsFormStatus("Please fill in the required fields.", "error");
-        trackEvent("form_error", { form: "ads_popup", reason: "validation" });
-        return;
-      }
-
-      // Honeypot check: if the hidden field has a value, silently drop the
-      // submission without hitting the network (bots fill hidden fields).
-      var honeypot = adsForm.querySelector('[name="_gotcha"]');
-      if (honeypot && honeypot.value) {
-        return;
-      }
-
-      isSubmittingAdsForm = true;
-      setAdsFormLoading(true);
-      stampSubmittedAt("adsAttr");
-
-      var formData = new FormData(adsForm);
-
-      fetch(adsForm.action, {
-        method: "POST",
-        body: formData,
-        headers: {
-          Accept: "application/json"
-        }
-      })
-        .then(function (response) {
-          if (response.ok) {
-            trackGoogleAdsLead();
-            trackEvent("generate_lead", { form: "ads_popup", lead_id: adsLeadId });
-            adsForm.innerHTML =
-              '<p class="ads-modal__success">Thanks — we\'ll review the process and get back to you shortly.</p>';
-            window.setTimeout(closeAdsModal, AUTO_CLOSE_AFTER_SUCCESS_MS);
-          } else {
-            showAdsFormStatus("The form could not be submitted. Please try again or email us directly.", "error");
-            trackEvent("form_error", { form: "ads_popup", reason: "server_error", status: response.status });
-            isSubmittingAdsForm = false;
-            setAdsFormLoading(false);
-          }
-        })
-        .catch(function () {
-          showAdsFormStatus("The form could not be submitted. Please try again or email us directly.", "error");
-          trackEvent("form_error", { form: "ads_popup", reason: "network" });
-          isSubmittingAdsForm = false;
-          setAdsFormLoading(false);
-        });
-    });
-  })();
+  // Google Ads Test #2: the paid-search popup that used to live here
+  // (shown ~1.5s after load to gclid/utm_source=google traffic) has been
+  // removed so all traffic lands on one consistent page with one
+  // primary inquiry form — see git history for the prior implementation
+  // if it's ever needed again. Its Google Ads conversion firing is now
+  // fully covered by the main contact form above.
 
   /* ------------------------------------------------------------------
      Footer copyright year, generated automatically
