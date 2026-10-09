@@ -216,13 +216,26 @@ clip becomes available later, it can be re-added as a new section.
       the "Google Ads Test #2" comment block near the top of the file),
       so every one of those events starts flowing into GA4 the moment
       the config line above is added.
+- [ ] **Disable GA4 Enhanced Measurement's "Form interactions" toggle**
+      when creating the GA4 property above. Enhanced Measurement ships
+      with its own automatic `form_start` detection, which would fire
+      alongside (and double-count against) the custom `form_start` event
+      `script.js` already sends. Turn it off under the new property's
+      Admin → Data Streams → (this stream) → Enhanced measurement → Form
+      interactions, so the validated custom event stays the one source
+      of truth. No code change is needed for this — it's a one-time
+      toggle in the GA4 UI.
 - [ ] **Google Ads primary conversion configuration** — the conversion
       action "FixtureSprint - Form Submission" and its `send_to` ID
       (`AW-18384514901/DvBmCPm6kuAcENXetb5E`) are account-level Google
       Ads settings that can't be set from website code; confirm in the
       Google Ads UI that this conversion action exists, is marked
       Primary, and uses an appropriate attribution/count setting
-      (e.g. "One" per conversion action, not "Every").
+      (e.g. "One" per conversion action, not "Every"). The conversion
+      event now also sends a `transaction_id` (the same `lead_id` used
+      in the Formspree record and the `generate_lead` event) — Google
+      Ads uses this automatically for conversion deduplication, no
+      additional account setting is required for that part.
 
 ---
 

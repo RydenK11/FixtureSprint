@@ -8,17 +8,19 @@
 
   /* ------------------------------------------------------------------
      Google Ads conversion tracking — "FixtureSprint - Form Submission"
-     Shared by both the main contact form and the Google Ads popup form
-     (see below), so it's defined once at the top of this file's shared
-     scope rather than nested inside either form's own handler. Call
-     this only after Formspree has confirmed a successful HTTP response
-     for a real submission — never on page load, popup open, button
-     click, validation, or a failed/error response.
+     Call this only after Formspree has confirmed a successful HTTP
+     response for a real submission — never on page load, button click,
+     validation, or a failed/error response. leadId is passed through as
+     Google's `transaction_id`, the same value already submitted to
+     Formspree as the hidden `lead_id` field and sent in the matching
+     `generate_lead` event — so the same confirmed inquiry can be
+     cross-referenced (and deduplicated) across all three systems.
      ------------------------------------------------------------------ */
-  function trackGoogleAdsLead() {
+  function trackGoogleAdsLead(leadId) {
     if (typeof gtag === 'function') {
       gtag('event', 'conversion', {
-        'send_to': 'AW-18384514901/DvBmCPm6kuAcENXetb5E'
+        'send_to': 'AW-18384514901/DvBmCPm6kuAcENXetb5E',
+        'transaction_id': leadId
       });
     }
   }
@@ -135,13 +137,16 @@
     }
   }
 
-  // case_study_view — fires once, the first time the case study section
-  // is at least 40% visible in the viewport, via IntersectionObserver
-  // (no scroll-event polling). Not tied to any form, so it's safe for
-  // this to run unconditionally.
+  // case_study_view — fires once, the first time the case study's 46%
+  // result banner is at least 50% visible, via IntersectionObserver (no
+  // scroll-event polling). Watching the banner specifically rather than
+  // the whole (much taller) section means this reliably fires on short
+  // mobile viewports too, where 50% of the full section may never fit
+  // on screen at once. Not tied to any form, so it's safe to run
+  // unconditionally.
   (function () {
-    var caseStudySection = document.getElementById("case-study");
-    if (!caseStudySection || typeof IntersectionObserver !== "function") {
+    var highlightBanner = document.querySelector(".case-study__highlight");
+    if (!highlightBanner || typeof IntersectionObserver !== "function") {
       return;
     }
     var hasFired = false;
@@ -155,9 +160,9 @@
           }
         });
       },
-      { threshold: 0.4 }
+      { threshold: 0.5 }
     );
-    observer.observe(caseStudySection);
+    observer.observe(highlightBanner);
   })();
 
   // fixture_cta_click — delegated listener so every primary inquiry CTA
@@ -334,6 +339,16 @@
 
     // form_start — fires once, on the visitor's first real interaction
     // with the form (not on page load, and not for the honeypot field).
+    //
+    // GA4 note: when a GA4 property is eventually created for this site
+    // (see README — none exists yet), its Enhanced Measurement feature
+    // includes an automatic "form_start" event that fires on its own
+    // form-interaction heuristic. That would double up with this custom
+    // one. Disable Enhanced Measurement's form interactions toggle for
+    // this GA4 property (Admin → Data Streams → this stream → Enhanced
+    // measurement → Form interactions) so this explicit, validated event
+    // stays the single source of truth. Do not add a second listener
+    // here to "match" GA4 — the fix is that one config toggle.
     var hasFiredFormStart = false;
     form.addEventListener(
       "focusin",
@@ -398,7 +413,7 @@
             // generate_lead carries the same lead_id submitted in the
             // hidden field, so this one confirmed inquiry isn't double-
             // counted against the Formspree record or the Ads conversion.
-            trackGoogleAdsLead();
+            trackGoogleAdsLead(contactLeadId);
             trackEvent("generate_lead", { form: "contact", lead_id: contactLeadId });
             showStatus(SUCCESS_MESSAGE, "success");
             form.reset();
