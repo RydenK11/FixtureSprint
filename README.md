@@ -197,45 +197,34 @@ clip becomes available later, it can be re-added as a new section.
       anywhere in the repository. Search both files for `FixtureSprint`
       if the business name ever changes again.
 
-### Analytics — GA4 property not yet created
-- [ ] **GA4 measurement ID** — only a Google Ads tag (`AW-18384514901`)
-      is installed in `index.html`'s `<head>`; there is no GA4 property
-      and no GTM container anywhere in this repo. That means GA4's
-      automatic `page_view` and `user_engagement` events aren't
-      available yet, and no inquiry data is landing in GA4 today.
-
-      To enable it: create a GA4 property in Google Analytics, copy its
-      `G-XXXXXXXXXX` measurement ID, and add one line next to the
-      existing Ads config in `index.html`:
-      ```html
-      gtag('config', 'G-XXXXXXXXXX');
-      ```
-      No other code changes are needed — `script.js` already fires
-      `case_study_view`, `fixture_cta_click`, `form_start`, `form_error`,
-      and `generate_lead` through the same shared `gtag()` function (see
-      the "Google Ads Test #2" comment block near the top of the file),
-      so every one of those events starts flowing into GA4 the moment
-      the config line above is added.
+### Analytics — GA4 linked to Google Ads, `generate_lead` is Primary
+- [x] **GA4 measurement ID** — `G-CM5WD21L0W` is configured in
+      `index.html`'s `<head>` alongside the existing Google Ads tag
+      (`AW-18384514901`), sharing the one gtag.js script tag/dataLayer.
+      `script.js` fires `case_study_view`, `fixture_cta_click`,
+      `form_start`, `form_error`, and `generate_lead` through the shared
+      `trackEvent()` helper (see the comment block near the top of the
+      file), so all of those land in GA4 automatically — no per-event
+      code is tied to a specific destination.
 - [ ] **Disable GA4 Enhanced Measurement's "Form interactions" toggle**
-      when creating the GA4 property above. Enhanced Measurement ships
+      for this property, if not already done. Enhanced Measurement ships
       with its own automatic `form_start` detection, which would fire
       alongside (and double-count against) the custom `form_start` event
-      `script.js` already sends. Turn it off under the new property's
-      Admin → Data Streams → (this stream) → Enhanced measurement → Form
-      interactions, so the validated custom event stays the one source
-      of truth. No code change is needed for this — it's a one-time
-      toggle in the GA4 UI.
-- [ ] **Google Ads primary conversion configuration** — the conversion
-      action "FixtureSprint - Form Submission" and its `send_to` ID
-      (`AW-18384514901/DvBmCPm6kuAcENXetb5E`) are account-level Google
-      Ads settings that can't be set from website code; confirm in the
-      Google Ads UI that this conversion action exists, is marked
-      Primary, and uses an appropriate attribution/count setting
-      (e.g. "One" per conversion action, not "Every"). The conversion
-      event now also sends a `transaction_id` (the same `lead_id` used
-      in the Formspree record and the `generate_lead` event) — Google
-      Ads uses this automatically for conversion deduplication, no
-      additional account setting is required for that part.
+      `script.js` already sends. Turn it off under Admin → Data Streams
+      → (this stream) → Enhanced measurement → Form interactions, so the
+      validated custom event stays the one source of truth. No code
+      change is needed for this — it's a one-time toggle in the GA4 UI.
+- [x] **Google Ads conversion tracking** — Google Ads is linked to GA4,
+      with `generate_lead` configured there as the Primary conversion.
+      Because of that, `script.js` no longer makes a separate direct
+      Google Ads conversion call (the `trackGoogleAdsLead()` function and
+      its `AW-18384514901/DvBmCPm6kuAcENXetb5E` conversion action were
+      removed) — the single `generate_lead` event, fired only after a
+      confirmed Formspree success, is now what reports the conversion to
+      both GA4 and Google Ads. Each inquiry still carries a unique
+      `lead_id` in the Formspree record and in the `generate_lead` event
+      itself, so leads remain traceable one-to-one even without a
+      separate `transaction_id` field.
 
 ---
 

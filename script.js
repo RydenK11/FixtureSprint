@@ -7,49 +7,23 @@
   "use strict";
 
   /* ------------------------------------------------------------------
-     Google Ads conversion tracking — "FixtureSprint - Form Submission"
-     Call this only after Formspree has confirmed a successful HTTP
-     response for a real submission — never on page load, button click,
-     validation, or a failed/error response. leadId is passed through as
-     Google's `transaction_id`, the same value already submitted to
-     Formspree as the hidden `lead_id` field and sent in the matching
-     `generate_lead` event — so the same confirmed inquiry can be
-     cross-referenced (and deduplicated) across all three systems.
-     ------------------------------------------------------------------ */
-  function trackGoogleAdsLead(leadId) {
-    if (typeof gtag === 'function') {
-      gtag('event', 'conversion', {
-        'send_to': 'AW-18384514901/DvBmCPm6kuAcENXetb5E',
-        'transaction_id': leadId
-      });
-    }
-  }
-
-  /* ------------------------------------------------------------------
-     Google Ads Test #2 — shared event tracking + attribution capture
+     Shared event tracking + attribution capture
 
      ANALYTICS SETUP AS FOUND (read before editing this block):
-       - Only a Google Ads tag is installed (gtag.js, AW-18384514901,
-         wired up in index.html's <head>). There is no GA4 property
-         (no gtag('config', 'G-XXXXXXXXXX')) and no GTM container
-         anywhere in this repo.
-       - That means GA4's automatic `page_view` and `user_engagement`
-         events are NOT available yet — those come from a GA4 property
-         specifically, and inventing a measurement ID here would send
-         data nowhere (or into someone else's property by mistake).
-         MANUAL SETUP REQUIRED: create a GA4 property, get its
-         G-XXXXXXXXXX ID, and add one `gtag('config', 'G-...')` call
-         next to the existing Ads config in index.html.
-       - trackEvent() below is written to be forward-compatible with
-         that: it just calls the existing shared gtag() function with
-         no `send_to`, so once a GA4 config is added, every event
-         already being fired will start flowing into GA4 with zero
-         further code changes. Today, with only the Ads tag configured,
-         these calls are inert from a GA4 reporting standpoint but are
-         still a real, visible DevTools/dataLayer trail for debugging.
+       - Google Ads (gtag.js, AW-18384514901) and a GA4 property
+         (G-CM5WD21L0W) are both configured via gtag('config', ...) in
+         index.html's <head>, sharing the one gtag.js script tag/
+         dataLayer. Google Ads is linked to GA4, with `generate_lead`
+         configured there as the Primary conversion — so GA4 is now the
+         single source of truth for conversions; there is no separate
+         direct Google Ads conversion call in this file anymore.
+       - trackEvent() below calls the shared gtag() function with no
+         `send_to`, so every event it fires (case_study_view,
+         fixture_cta_click, form_start, form_error, generate_lead) goes
+         to both configured destinations.
        - Do not add a second <script src="...gtag/js..."> tag or a
-         second gtag('config', 'AW-18384514901') call — one of each
-         already exists in index.html.
+         second gtag('config', ...) call for either AW-18384514901 or
+         G-CM5WD21L0W — one of each already exists in index.html.
   ------------------------------------------------------------------ */
   function trackEvent(name, params) {
     if (typeof gtag === 'function') {
@@ -384,8 +358,7 @@
 
       // Honeypot check: if the hidden field has a value, silently drop the
       // submission without hitting the network (bots fill hidden fields).
-      // This is not a real lead, so no conversion or generate_lead event
-      // is tracked here.
+      // This is not a real lead, so no generate_lead event is tracked here.
       var honeypot = form.querySelector('[name="_gotcha"]');
       if (honeypot && honeypot.value) {
         showStatus(SUCCESS_MESSAGE, "success");
@@ -408,12 +381,13 @@
       })
         .then(function (response) {
           if (response.ok) {
-            // Conversion and generate_lead fire only after Formspree
-            // confirms success, and before the success message is shown.
-            // generate_lead carries the same lead_id submitted in the
-            // hidden field, so this one confirmed inquiry isn't double-
-            // counted against the Formspree record or the Ads conversion.
-            trackGoogleAdsLead(contactLeadId);
+            // generate_lead fires only after Formspree confirms success,
+            // and before the success message is shown. It carries the
+            // same lead_id submitted in the hidden field, so this one
+            // confirmed inquiry isn't double-counted — and since Google
+            // Ads is linked to GA4 with generate_lead set as the Primary
+            // conversion there, this single event is also what reports
+            // the conversion back to Google Ads.
             trackEvent("generate_lead", { form: "contact", lead_id: contactLeadId });
             showStatus(SUCCESS_MESSAGE, "success");
             form.reset();
